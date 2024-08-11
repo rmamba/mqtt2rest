@@ -38,6 +38,24 @@ const updateCache = (path, data) => {
     });
 }
 
+const publishData = async (topic, payload, headers) => {
+    try {
+        const start = Date.now();
+        const resp = await axios
+            .post(
+                `${REDIS_REST_URI_BASE}/publish/${topic}`,
+                payload,
+                headers
+            );
+        if (DEBUG) {
+            console.log(`${topic}: ${Date.now() - start}ms`);
+        }
+    } catch (err) {
+        console.error(err);
+    }
+    
+};
+
 const run = async () => {
     const mqttConfig = {
         clientId: MQTT_CLIENT_ID,
@@ -80,18 +98,13 @@ const run = async () => {
         if (REDIS_REST_API_KEY) {
             requestHeaders[HEADER_API_KEY] = REDIS_REST_API_KEY;
         }
-        axios
-            .post(
-                `${REDIS_REST_URI_BASE}/publish/${topic}`,
-                isJSON ? JSON.stringify(payload) : payload.toString(),
-                {
-                    headers: requestHeaders,
-                }
-            ).then(function (response) {
-                console.log(response);
-            }).catch(function (error) {
-                console.log(error);
-            });
+        publishData(
+            topic,
+            isJSON ? JSON.stringify(payload) : payload.toString(),
+            {
+                headers: requestHeaders,
+            },
+        );
     });
     
     while (!mqttClient.connected) {
