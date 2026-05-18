@@ -94,7 +94,7 @@ const run = async () => {
         }
         updateCache(topic, payload);
         const requestHeaders = {
-            'content-type': 'text/json'
+            'content-type': isJSON ? 'text/json' : 'text/plain'
         };
         if (REDIS_REST_API_KEY) {
             requestHeaders[HEADER_API_KEY] = REDIS_REST_API_KEY;
