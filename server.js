@@ -13,6 +13,7 @@ const MQTT_PORT = process.env.MQTT_PORT || '1883';
 const MQTT_SUB = process.env.MQTT_SUB || 'mqtt2rest/#';
 
 const REDIS_REST_URI_BASE = process.env.REDIS_REST_URI_BASE || 'http://localhost:3333';
+const REDIS_REST_TYPES = process.env.REDIS_REST_TYPES || 'publish'; // publish &| set
 const REDIS_REST_API_KEY = process.env.REDIS_REST_API_KEY;
 
 let UPDATE_INTERVAL = parseInt(process.env.UPDATE_INTERVAL || '1000');
@@ -38,12 +39,12 @@ const updateCache = (path, data) => {
     });
 }
 
-const publishData = async (topic, payload, headers) => {
+const sendData = async (type, topic, payload, headers) => {
     try {
         const start = Date.now();
         const resp = await axios
             .post(
-                `${REDIS_REST_URI_BASE}/publish/${topic}`,
+                `${REDIS_REST_URI_BASE}/${type}/${topic}`,
                 payload,
                 headers
             );
@@ -98,13 +99,26 @@ const run = async () => {
         if (REDIS_REST_API_KEY) {
             requestHeaders[HEADER_API_KEY] = REDIS_REST_API_KEY;
         }
-        publishData(
-            topic,
-            isJSON ? JSON.stringify(payload) : payload.toString(),
-            {
-                headers: requestHeaders,
-            },
-        );
+        if (REDIS_REST_TYPES.includes('publish')) {
+            sendData(
+                'publish',
+                topic,
+                isJSON ? JSON.stringify(payload) : payload.toString(),
+                {
+                    headers: requestHeaders,
+                },
+            );
+        }
+        if (REDIS_REST_TYPES.includes('set')) {
+            sendData(
+                'set',
+                topic,
+                isJSON ? JSON.stringify(payload) : payload.toString(),
+                {
+                    headers: requestHeaders,
+                },
+            );
+        }
     });
     
     while (!mqttClient.connected) {
